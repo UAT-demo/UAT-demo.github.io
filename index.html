@@ -371,6 +371,116 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* ── Audio Editing section ───────────────────────────────── */
+    .edit-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .edit-tab {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--muted);
+      padding: 7px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .edit-tab:hover { background: var(--soft); }
+
+    .edit-tab[data-mode="add"].active  { border-color: #4caf82; background: #edf7f1; color: #1a6641; }
+    .edit-tab[data-mode="del"].active  { border-color: #d07070; background: #fdf1f1; color: #7b2020; }
+    .edit-tab[data-mode="rep"].active  { border-color: #d09040; background: #fdf6ed; color: #7a4a0e; }
+
+    .edit-tab[data-mode="add"]:hover { background: #edf7f1; }
+    .edit-tab[data-mode="del"]:hover { background: #fdf1f1; }
+    .edit-tab[data-mode="rep"]:hover { background: #fdf6ed; }
+
+    .edit-panel { display: none; }
+    .edit-panel.active { display: block; }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .mode-badge.add { background: #edf7f1; color: #1a6641; border: 1px solid #9dd6b8; }
+    .mode-badge.del { background: #fdf1f1; color: #7b2020; border: 1px solid #e8b4b4; }
+    .mode-badge.rep { background: #fdf6ed; color: #7a4a0e; border: 1px solid #e8cda0; }
+
+    .edit-instruction {
+      background: var(--soft);
+      border: 1px solid #cfe0e7;
+      border-radius: 6px;
+      padding: 9px 13px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-dark);
+      line-height: 1.4;
+    }
+
+    .prompt-flow {
+      display: grid;
+      gap: 5px;
+    }
+
+    .prompt-row {
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .prompt-label {
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .prompt-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .prompt-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 2px 0;
+    }
+
+    .systems-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .systems-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .systems-3 {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -403,7 +513,7 @@
       <div class="section-body">
         <p>UAT unifies audio generation and understanding in a single diffusion framework. It couples continuous latent diffusion for acoustic synthesis with masked discrete diffusion for text prediction, enabling bidirectional audio-text modeling without relying on autoregressive audio tokens.</p>
         <div class="model-figure" aria-label="UAT model structure">
-          <img src="model.png" alt="UAT model structure">
+          <img src="model_1.png" alt="UAT model structure">
         </div>
         <div class="task-grid">
           <div class="task">
@@ -446,79 +556,30 @@
       </summary>
       <div class="section-body">
         <div class="section-head">
-          <p>Audio editing examples will be added here with the same paper-demo layout.</p>
+          <p>Text-guided audio editing demos. Each card shows the source recording, a baseline result, and our model's output for three operation types: adding new sounds, deleting existing sounds, and replacing one sound with another.</p>
         </div>
-        <div class="placeholder">
-          <strong>Editing samples pending</strong>
-          <p>This section is reserved for source audio, editing instruction, and edited outputs. It can be populated directly once the editing samples are provided.</p>
+
+        <div class="edit-tabs" role="tablist" aria-label="Editing operation type">
+          <button class="edit-tab active" data-mode="add" role="tab" aria-selected="true" aria-controls="editPanel-add">➕ Add (10)</button>
+          <button class="edit-tab" data-mode="del" role="tab" aria-selected="false" aria-controls="editPanel-del">🗑 Delete (10)</button>
+          <button class="edit-tab" data-mode="rep" role="tab" aria-selected="false" aria-controls="editPanel-rep">🔄 Replace (10)</button>
+        </div>
+
+        <div class="edit-panel active" id="editPanel-add">
+          <div class="sample-list" id="editList-add" aria-label="Audio add samples"></div>
+        </div>
+        <div class="edit-panel" id="editPanel-del">
+          <div class="sample-list" id="editList-del" aria-label="Audio delete samples"></div>
+        </div>
+        <div class="edit-panel" id="editPanel-rep">
+          <div class="sample-list" id="editList-rep" aria-label="Audio replace samples"></div>
         </div>
       </div>
     </details>
   </main>
 
   <script>
-    const systems = [
-      { id: "ours", label: "Ours" },
-      { id: "gt", label: "Ground Truth" },
-      { id: "audioomni", label: "AudioOmni" },
-      { id: "uniaudio", label: "UniAudio 2.0" },
-    ];
-
-    const samples = [
-      {
-        id: "107107",
-        prompt: "A series of snores followed by subdued laughter and another snore",
-        tags: ["human", "laughter", "vocal texture"],
-      },
-      {
-        id: "105396",
-        prompt: "A small drill is operating and whirring, with grinding and clattering",
-        tags: ["tool", "mechanical", "impact"],
-      },
-      {
-        id: "105719",
-        prompt: "Continuous wind and surf",
-        tags: ["nature", "ambience", "water"],
-      },
-      {
-        id: "22666",
-        prompt: "A glass link occurs, a thump, and then clattering",
-        tags: ["glass", "transient", "clatter"],
-      },
-      {
-        id: "107229",
-        prompt: "An aircraft engine operating as wind blows into a microphone",
-        tags: ["aircraft", "engine", "wind"],
-      },
-      {
-        id: "103658",
-        prompt: "Humming and rattling followed by distant warning bells and the horn of an oncoming train",
-        tags: ["train", "bells", "horn"],
-      },
-      {
-        id: "2954",
-        prompt: "Large engine running with loud exhaust",
-        tags: ["engine", "exhaust", "low-frequency"],
-      },
-      {
-        id: "102836",
-        prompt: "A motorbike engine running idle",
-        tags: ["motorbike", "idle", "vehicle"],
-      },
-      {
-        id: "104246",
-        prompt: "Burping and girls laughing with many voices in the background",
-        tags: ["voices", "laughter", "crowd"],
-      },
-      {
-        id: "104173",
-        prompt: "A boat engine starts up and idles",
-        tags: ["boat", "startup", "engine"],
-      },
-    ];
-
-    const generationList = document.getElementById("generationList");
-
+    /* ── helpers ─────────────────────────────────────────────── */
     function el(tag, attrs = {}, children = []) {
       const node = document.createElement(tag);
       Object.entries(attrs).forEach(([key, value]) => {
@@ -530,27 +591,156 @@
       return node;
     }
 
+    /* ── Section 1 – Audio Generation ───────────────────────── */
+    const genSystems = [
+      { id: "ours",      label: "Ours" },
+      { id: "gt",        label: "Ground Truth" },
+      { id: "audioomni", label: "AudioOmni" },
+      { id: "uniaudio",  label: "UniAudio 2.0" },
+    ];
+
+    const samples = [
+      { id: "107107", prompt: "A series of snores followed by subdued laughter and another snore",                                        tags: ["human", "laughter", "vocal texture"] },
+      { id: "105396", prompt: "A small drill is operating and whirring, with grinding and clattering",                                    tags: ["tool", "mechanical", "impact"] },
+      { id: "105719", prompt: "Continuous wind and surf",                                                                                 tags: ["nature", "ambience", "water"] },
+      { id: "22666",  prompt: "A glass link occurs, a thump, and then clattering",                                                        tags: ["glass", "transient", "clatter"] },
+      { id: "107229", prompt: "An aircraft engine operating as wind blows into a microphone",                                             tags: ["aircraft", "engine", "wind"] },
+      { id: "103658", prompt: "Humming and rattling followed by distant warning bells and the horn of an oncoming train",                 tags: ["train", "bells", "horn"] },
+      { id: "2954",   prompt: "Large engine running with loud exhaust",                                                                   tags: ["engine", "exhaust", "low-frequency"] },
+      { id: "102836", prompt: "A motorbike engine running idle",                                                                          tags: ["motorbike", "idle", "vehicle"] },
+      { id: "104246", prompt: "Burping and girls laughing with many voices in the background",                                            tags: ["voices", "laughter", "crowd"] },
+      { id: "104173", prompt: "A boat engine starts up and idles",                                                                        tags: ["boat", "startup", "engine"] },
+    ];
+
+    const generationList = document.getElementById("generationList");
+
     samples.forEach((sample, index) => {
-      const tags = el("div", { className: "tags" }, sample.tags.map((tag) => el("span", { className: "tag", text: tag })));
+      const tags = el("div", { className: "tags" }, sample.tags.map((t) => el("span", { className: "tag", text: t })));
       const head = el("div", { className: "sample-head" }, [
         el("div", { className: "sample-id", text: `Sample ${String(index + 1).padStart(2, "0")}` }),
         el("h2", { text: sample.prompt }),
         tags,
       ]);
+      const players = el("div", { className: "systems" }, genSystems.map((sys) =>
+        el("div", { className: `system${sys.id === "ours" ? " ours" : ""}` }, [
+          el("div", { className: "system-name", text: sys.label }),
+          el("audio", { controls: "", preload: "metadata", src: `assets/${sys.id}/${sample.id}.mp3` }),
+        ])
+      ));
+      generationList.appendChild(el("article", {}, [head, players]));
+    });
 
-      const players = el("div", { className: "systems" }, systems.map((system) => {
-        const card = el("div", { className: `system ${system.id === "ours" ? "ours" : ""}` }, [
-          el("div", { className: "system-name", text: system.label }),
-          el("audio", {
-            controls: "",
-            preload: "metadata",
-            src: `assets/${system.id}/${sample.id}.mp3`,
-          }),
+    /* ── Section 2 – Audio Editing ───────────────────────────── */
+    // Base path to the editing samples folder (inside this repo)
+    const EDIT_BASE = "editing_samples";
+
+    const editSystems = [
+      { id: "source",   label: "Source",   ours: false },
+      { id: "baseline", label: "Audio-omni", ours: false },
+      { id: "ours",     label: "Ours",     ours: true  },
+    ];
+
+    const modeLabel = { add: "Add", del: "Delete", rep: "Replace" };
+    const modeIcon  = { add: "➕", del: "🗑", rep: "🔄" };
+
+    const editSamples = {
+      add: [
+        { num: "01", instruction: "Add a woman talking",           original: "A sprayer is hissing.",                                                              target: "A sprayer is hissing, with a woman talking.",                                                            file: "01_add_a_woman_talking__-9qM9_6GMwA_90000_100000" },
+        { num: "02", instruction: "Add piano music",               original: "Applause from audience.",                                                            target: "Applause from audience with piano music.",                                                               file: "02_add_piano_music__06JVJbOIFno_0_10000" },
+        { num: "03", instruction: "Add seagulls squawking",        original: "Raindrops falling on surface.",                                                      target: "Raindrops falling on surface with seagulls squawking.",                                                  file: "03_add_seagulls_squawking__0Ax4Xwc78Hs_30000_40000" },
+        { num: "04", instruction: "Add drum thumping",             original: "Children are talking and laughing.",                                                 target: "Children are talking and laughing with drum thumping.",                                                  file: "04_add_drum_thumping__-7G6h-Qr0_E_30000_40000" },
+        { num: "05", instruction: "Add the sound of thunder",      original: "Continuous running water.",                                                          target: "Continuous running water with thunder.",                                                                 file: "05_add_the_sound_of_thunder__-FtiJ38WHYM_50000_60000" },
+        { num: "06", instruction: "Add paper rustling",            original: "A soft mechanical switching and a beep, repeating frequently.",                      target: "A soft mechanical switching and a beep, repeating frequently, with paper rustling.",                       file: "06_add_paper_rustling__-Pfqe1LcYXw_20000_30000" },
+        { num: "07", instruction: "Add paper rustling",            original: "Clock ticking with a beep towards the end.",                                         target: "Clock ticking with a beep towards the end with paper rustling.",                                         file: "07_add_paper_rustling__-5kRgp_lxpk_10000_20000" },
+        { num: "08", instruction: "Add horse neighing",            original: "Steady rain and heavy wind.",                                                        target: "Steady rain and heavy wind with horse neighing.",                                                        file: "08_add_horse_neighing__0F87ERBM2RI_130000_140000" },
+        { num: "09", instruction: "Add bird chirping",             original: "A man talking and walking on leaves.",                                               target: "A man talking and walking on leaves in bird chirping.",                                                  file: "09_add_bird_chirping__--C2fgwf0vg_200000_210000" },
+        { num: "10", instruction: "Add cattle moo",                original: "Ducks are quacking and an adult female speaks.",                                     target: "Ducks are quacking, cattle moo, and an adult female speaks.",                                            file: "10_add_cattle_moo__-8uTrn1Y85U_140000_150000" },
+      ],
+      del: [
+        { num: "01", instruction: "Delete wheels roll against the metal track",      original: "A train passes by, its wheels roll against the metal track before honking its horn.",   target: "A train passes by, honking its horn.",                                              file: "01_delete_wheels_roll_against_the_metal_tra__-5QrBL6MzLg_60000_70000" },
+        { num: "02", instruction: "Delete adult male speaks",                        original: "Birds are chirping, a dog barks, and an adult male speaks.",                            target: "Birds are chirping, a dog barks.",                                                  file: "02_delete_adult_male_speaks__0VmXmBNzbpU_30000_40000" },
+        { num: "03", instruction: "Delete gunshots occur",                           original: "Unnatural growling occurs, an adult male speaks, and gunshots occur.",                  target: "Unnatural growling occurs, an adult male speaks.",                                  file: "03_delete_gunshots_occur__-8_WW57c8S0_530000_540000" },
+        { num: "04", instruction: "Delete boys screaming",                           original: "A small burst of air followed by boys screaming and squeaky footsteps.",                target: "A small burst of air followed by squeaky footsteps.",                               file: "04_delete_boys_screaming__-3fImGL-sbQ_2000_12000" },
+        { num: "05", instruction: "Delete gun fired",                                original: "Helicopter blades are rotating and a gun is fired.",                                    target: "Helicopter blades are rotating.",                                                   file: "05_delete_gun_fired__3mrC9pAWIZc_80000_90000" },
+        { num: "06", instruction: "Delete water splashing",                          original: "A boat motor is running, water is splashing, and people are speaking.",                 target: "A boat motor is running, and people are speaking.",                                 file: "06_delete_water_splashing__-3pJKeifc_M_30000_40000" },
+        { num: "07", instruction: "Delete footsteps",                                original: "A rustling is heard, followed by footsteps.",                                           target: "A rustling is heard.",                                                              file: "07_delete_footsteps__-N2C9l8w3NQ_230000_240000" },
+        { num: "08", instruction: "Delete car horns",                                original: "People are cheering and honking their car horns.",                                      target: "People are cheering.",                                                              file: "08_delete_car_horns__-fU6g_dGmAU_30000_40000" },
+        { num: "09", instruction: "Delete dish clinks",                              original: "An adult female speaks and a dish clinks.",                                             target: "An adult female speaks.",                                                          file: "09_delete_dish_clinks__-sMzJwM0Nno_290000_300000" },
+        { num: "10", instruction: "Delete honk",                                     original: "Lulling roar of a truck, and then a loud honk.",                                       target: "Lulling roar of a truck.",                                                         file: "10_delete_honk__-XuYrreB4yo_10000_20000" },
+      ],
+      rep: [
+        { num: "01", instruction: "Replace sanding sound with water running",             original: "Sanding sound while two men are talking.",                                       target: "Water running sound while two men are talking.",                                    file: "01_replace_sanding_sound_with_water_running__-5Pbwai6jHQ_40000_50000" },
+        { num: "02", instruction: "Replace liquid flows with oil sizzling",               original: "A man and a woman talk and laugh while some liquid flows.",                       target: "A man and a woman talk and laugh while oil sizzling.",                              file: "02_replace_liquid_flows_with_oil_sizzling__uUStOJqds3M_10000_20000" },
+        { num: "03", instruction: "Replace crinkling sound with keyboard typing",         original: "A crinkling sound, and then a woman speaking.",                                   target: "A keyboard typing, and then a woman speaking.",                                     file: "03_replace_crinkling_sound_with_keyboard_ty__-CZvettHJgI_370000_380000" },
+        { num: "04", instruction: "Replace man talks with man laughs",                    original: "A beep sounds several times while a man talks.",                                  target: "A beep sounds several times while a man laughs.",                                  file: "04_replace_man_talks_with_man_laughs__xnMerCib9Ow_60000_70000" },
+        { num: "05", instruction: "Replace women speak with male speak",                  original: "Women speak with distant sirens.",                                                target: "Male speak with distant sirens.",                                                   file: "05_replace_women_speak_with_male_speak__zvxEBvccATc_90000_100000" },
+        { num: "06", instruction: "Replace snores with wood being sawed",                 original: "Somebody snores while others talking.",                                           target: "Wood being sawed while somebody others talking.",                                   file: "06_replace_snores_with_wood_being_sawed__zhHLleIs8sE_40000_50000" },
+        { num: "07", instruction: "Replace water burbles with stones rustling in the wind", original: "Birds chirp while water burbles.",                                              target: "Birds chirp while sand and stones rustling in the wind.",                          file: "07_replace_water_burbles_with_stones_rustli__yyYkeJTbuvs_0_10000" },
+        { num: "08", instruction: "Replace motor runs with machine gun firing",           original: "People clapping and cheering as a motor runs.",                                   target: "People clapping and cheering as machine gun firing.",                               file: "08_replace_motor_runs_with_machine_gun_firi__y77REm7oatE_15000_25000" },
+        { num: "09", instruction: "Replace men shout with women shout",                   original: "A heavy rain and thunderstorm while men shout.",                                  target: "A heavy rain and thunderstorm while women shout.",                                 file: "09_replace_men_shout_with_women_shout__EezGnSpoxQw_30000_40000" },
+        { num: "10", instruction: "Replace wind with seagulls squawking",                 original: "A heavy rain falls with some wind.",                                              target: "A heavy rain falls with seagulls squawking.",                                      file: "10_replace_wind_with_seagulls_squawking__yK9XfvDZpyw_20000_30000" },
+      ],
+    };
+
+    function buildEditSample(mode, sample, globalIndex) {
+      // Left: instruction + prompt flow
+      const badge = el("span", { className: `mode-badge ${mode}`, text: `${modeIcon[mode]} ${modeLabel[mode]}` });
+
+      const instrBox = el("div", { className: "edit-instruction", text: sample.instruction });
+
+      const promptFlow = el("div", { className: "prompt-flow" }, [
+        el("div", { className: "prompt-row" }, [
+          el("span", { className: "prompt-label", text: "Original" }),
+          el("span", { className: "prompt-text", text: sample.original }),
+        ]),
+        el("div", { className: "prompt-divider" }),
+        el("div", { className: "prompt-row" }, [
+          el("span", { className: "prompt-label", text: "Target" }),
+          el("span", { className: "prompt-text", text: sample.target }),
+        ]),
+      ]);
+
+      const head = el("div", { className: "sample-head" }, [
+        el("div", { className: "sample-id", text: `${modeLabel[mode]} · Sample ${sample.num}` }),
+        badge,
+        instrBox,
+        promptFlow,
+      ]);
+
+      // Right: 3 audio players
+      const players = el("div", { className: "systems-3" }, editSystems.map((sys) => {
+        const srcPath = `${EDIT_BASE}/${mode}/${sys.id}/${sample.file}.wav`;
+        return el("div", { className: `system${sys.ours ? " ours" : ""}` }, [
+          el("div", { className: "system-name", text: sys.label }),
+          el("audio", { controls: "", preload: "metadata", src: srcPath }),
         ]);
-        return card;
       }));
 
-      generationList.appendChild(el("article", {}, [head, players]));
+      return el("article", {}, [head, players]);
+    }
+
+    // Render all three editing panels
+    ["add", "del", "rep"].forEach((mode) => {
+      const list = document.getElementById(`editList-${mode}`);
+      editSamples[mode].forEach((sample, i) => {
+        list.appendChild(buildEditSample(mode, sample, i));
+      });
+    });
+
+    // Tab switching
+    document.querySelectorAll(".edit-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const mode = tab.dataset.mode;
+        // Toggle tab active state
+        document.querySelectorAll(".edit-tab").forEach((t) => {
+          t.classList.toggle("active", t === tab);
+          t.setAttribute("aria-selected", t === tab ? "true" : "false");
+        });
+        // Toggle panel visibility
+        document.querySelectorAll(".edit-panel").forEach((p) => {
+          p.classList.toggle("active", p.id === `editPanel-${mode}`);
+        });
+      });
     });
   </script>
 </body>
