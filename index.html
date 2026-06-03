@@ -686,7 +686,7 @@
       ]);
 
       const head = el("div", { className: "sample-head" }, [
-        el("div", { className: "sample-id", text: `${modeLabel[mode]} · Sample ${sample.num}` }),
+        el("div", { className: "sample-id", text: `${modeLabel[mode]} · Sample ${String(globalIndex + 1).padStart(2, "0")}` }),
         badge,
         instrBox,
         promptFlow,
