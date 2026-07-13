@@ -481,6 +481,58 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* ── Audio Captioning section ────────────────────────────── */
+    .cap-audio {
+      margin-bottom: 12px;
+    }
+
+    .cap-systems {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cap-system {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 12px;
+      min-width: 0;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .cap-system.ours {
+      border-color: #8fbfcb;
+      background: linear-gradient(180deg, #f2fbfc 0%, #ffffff 100%);
+    }
+
+    .cap-system.gt {
+      border-color: #e6ddc4;
+      background: linear-gradient(180deg, #f7f3e8 0%, #ffffff 100%);
+    }
+
+    .cap-system.gt .system-name {
+      color: #7a6a2e;
+    }
+
+    .cap-system .system-name {
+      margin-bottom: 2px;
+    }
+
+    .cap-text {
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    @media (max-width: 980px) {
+      .cap-systems {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -497,7 +549,7 @@
         <a href="#overview">Overview</a>
         <a href="#generation">Audio Generation</a>
         <a href="#editing">Audio Editing</a>
-        
+        <a href="#captioning">Audio Captioning</a>
       </nav>
     </div>
   </header>
@@ -574,6 +626,21 @@
         <div class="edit-panel" id="editPanel-rep">
           <div class="sample-list" id="editList-rep" aria-label="Audio replace samples"></div>
         </div>
+      </div>
+    </details>
+
+    <details class="section-panel" id="captioning" open>
+      <summary>
+        <div class="summary-title">
+          <div class="section-kicker">Demo Section 3</div>
+          <h2>Audio Captioning</h2>
+        </div>
+      </summary>
+      <div class="section-body">
+        <div class="section-head">
+          <p>Non-autoregressive audio captioning results. Each card presents the audio clip, a human reference caption, and the captions predicted by UAT and representative baselines.</p>
+        </div>
+        <div class="sample-list" id="captioningList" aria-label="Audio captioning comparison samples"></div>
       </div>
     </details>
   </main>
@@ -726,6 +793,132 @@
           p.classList.toggle("active", p.id === `editPanel-${mode}`);
         });
       });
+    });
+
+    /* ── Section 3 – Audio Captioning ────────────────────────── */
+    const CAP_BASE = "captioning_samples";
+
+    const capSystems = [
+      { id: "ref",        label: "Ground Truth", ours: false, gt: true },
+      { id: "ours",       label: "Ours",         ours: true  },
+      { id: "uniaudio2",  label: "UniAudio 2.0", ours: false },
+    ];
+
+    // Normalize a caption: trim, capitalize first letter, ensure trailing period.
+    function normalizeCaption(text) {
+      let t = (text || "").trim();
+      if (!t) return t;
+      t = t.charAt(0).toUpperCase() + t.slice(1);
+      if (!/[.!?]$/.test(t)) t += ".";
+      return t;
+    }
+
+    const capSamples = [
+  {
+    id: "m8wV38lf2jg_20",
+    audio: "audio_long/02_m8wV38lf2jg_20.wav",
+    ref: "People are speaking while an engine is running, and an emergency vehicle sounds horn",
+    ours: "an emergency vehicle siren wails with people in the distance and a person speaks",
+    uniaudio2: "A siren wails as a man speaks in the background"
+  },
+  {
+    id: "kagkXkAVPNo_40",
+    audio: "audio_long/04_kagkXkAVPNo_40.wav",
+    ref: "A vehicle engine running then accelerating as a series of vehicle horns honk and a group of people talk in the background",
+    ours: "a vehicle engine idles with several car horns honking and people moving around",
+    uniaudio2: "A vehicle engine is heard revving, followed by a series of honks from a nearby car. The sounds suggest the presence of a busy urban environment or a parking lot."
+  },
+  {
+    id: "P4qd8uodw_M_0",
+    audio: "audio_long/06_P4qd8uodw_M_0.wav",
+    ref: "Men speak with some light clicks then vibrations and then digital clicks",
+    ours: "a man speaks then a slight beep sounds twice and more speech",
+    uniaudio2: "A man speaking followed by a camera shuttering and a bell ringing"
+  },
+  {
+    id: "ndxkSQKxaak_30",
+    audio: "audio/14_ndxkSQKxaak_30.wav",
+    ref: "A motorcycle engine is running while a man is talking",
+    ours: "a motorcycle engine idles as a man speaks and music plays",
+    uniaudio2: "A man speaking as a motorcycle engine idles"
+  },
+  {
+    id: "1e98HeU9Vrg_20",
+    audio: "audio/12_1e98HeU9Vrg_20.wav",
+    ref: "Waves crash on a beach while the wind blows",
+    ours: "waves crash continuously against a shoreline and wind blows lightly",
+    uniaudio2: "Waves crashing against a shore"
+  },
+  {
+    id: "_z6pymOet7g_50",
+    audio: "audio/01__z6pymOet7g_50.wav",
+    ref: "A man speaks followed by a toilet flush",
+    ours: "a man speaks then a toilet flushes",
+    uniaudio2: "A man speaks as a machine operates"
+  },
+  {
+    id: "Xf5LjaE_JQ0_30",
+    audio: "audio/15_Xf5LjaE_JQ0_30.wav",
+    ref: "A man speaks with distant traffic passing and some nearby rattling",
+    ours: "a man speaks with wind blowing and vehicles driving by",
+    uniaudio2: "A man speaking as a car passes by"
+  },
+  {
+    id: "Dt53UZgyznE_9",
+    audio: "audio/08_Dt53UZgyznE_9.wav",
+    ref: "A baby cries, and a man talks",
+    ours: "a child is crying and a kid is speaking",
+    uniaudio2: "A cat meowing and a woman speaking"
+  },
+  {
+    id: "e6jSpvTvfJ0_20",
+    audio: "audio/09_e6jSpvTvfJ0_20.wav",
+    ref: "Rain and light thunder",
+    ours: "rain falls onto a hard surface",
+    uniaudio2: "A loud hissing noise is present"
+  },
+  {
+    id: "qakN0JNbpcU_170",
+    audio: "audio/04_qakN0JNbpcU_170.wav",
+    ref: "Insects buzzing as a man speaks while birds chirp and wind blows into a microphone",
+    ours: "a man speaks as wind blows and birds chirp",
+    uniaudio2: "A man speaking followed by a dog panting"
+  },
+  {
+    id: "VQnmlf2OsUg_50",
+    audio: "audio/06_VQnmlf2OsUg_50.wav",
+    ref: "Helicopter blades spinning",
+    ours: "an RC helicopter motor runs continuously",
+    uniaudio2: "A high pitched whine and a low pitched whine"
+  },
+  {
+    id: "yVjivgsU2aA_10",
+    audio: "audio/13_yVjivgsU2aA_10.wav",
+    ref: "A motor vehicle revs and skids tires while speeding off",
+    ours: "Cars rev while an accelerating car engine is followed by squealing tires",
+    uniaudio2: "A race car engine revving and accelerating with people talking in the background"
+  }
+];
+
+    const captioningList = document.getElementById("captioningList");
+
+    capSamples.forEach((sample, index) => {
+      const head = el("div", { className: "sample-head" }, [
+        el("div", { className: "sample-id", text: `Sample ${String(index + 1).padStart(2, "0")}` }),
+        el("div", { className: "cap-audio" }, [
+          el("audio", { controls: "", preload: "metadata", src: `${CAP_BASE}/${sample.audio}` }),
+        ]),
+      ]);
+
+      const systems = el("div", { className: "cap-systems" }, capSystems.map((sys) => {
+        const cls = `cap-system${sys.ours ? " ours" : ""}${sys.gt ? " gt" : ""}`;
+        return el("div", { className: cls }, [
+          el("div", { className: "system-name", text: sys.label }),
+          el("div", { className: "cap-text", text: normalizeCaption(sample[sys.id]) }),
+        ]);
+      }));
+
+      captioningList.appendChild(el("article", {}, [head, systems]));
     });
   </script>
 </body>
